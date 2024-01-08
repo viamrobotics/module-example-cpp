@@ -1,103 +1,143 @@
 # C++ example module
 
-This is our example module for C++. It shows you how to:
+This example module demonstrates the use of the [C++ SDK](https://github.com/viamrobotics/viam-cpp-sdk) to build a minimal Viam module.
+It is [available for use on the registry](https://app.viam.com/module/viam/module-example-cpp) and shows how to include CI (Continuous Integration) builds for both x86 and ARM architectures.
 
-- Build a minimal Viam module using our [C++ SDK](https://github.com/viamrobotics/viam-cpp-sdk)
-- With CI builds for x86 and ARM
-- Released through our registry
+You can use this as a reference along with the C++ instructions for [coding your own modules](https://docs.viam.com/registry/create/).
 
-## Local build environment
 
-Known good environments:
-- Debian Bullseye (this is what our CI uses)
-- You can use Ubuntu 22.04 for testing, but the C++ builds will not be binary compatible with Bullseye
+## Requirements
 
-Setup and build instructions:
-- Install the apt packages in [apt-setup.sh](apt-setup.sh)
-- Install cmake
-	- Check CMAKE_VERSION in the github workflow (3.27.4 as of this writing)
-	- On Ubuntu 22.04, `snap install cmake` is new enough but `apt install cmake` is not
-	- Otherwise follow [CMake's download instructions](https://cmake.org/download/)
-- [Install rust](https://www.rust-lang.org/tools/install) (needed for viam_rust_utils)
+Before building this module, verify your operating system's development environment is compatible.
+The tested ideal environment for building this module is Debian Bullseye (used in our CI).
 
-## Deploy to robot
+You can also use Ubuntu 22.04 for testing, but the resulting C++ builds will not be binary compatible with Bullseye.
 
-These instructions assume you're targeting something similar to Debian bullseye.
 
-First install libraries on your target system:
+To setup for building this module:
+
+1. Install the apt packages in [apt-setup.sh](apt-setup.sh).
+2. Install the latest version of CMake to ensure compatibility with this module's CI.
+	- Install CMake on **Ubuntu 22.04**, by running the following command:
+
+	     ```sh
+	     snap install cmake
+	     ```
+            
+ 	     > [!NOTE]
+ 	     > Avoid using `apt-get` as it may install an older version of CMake.
+    
+	- See [CMake's download instructions](https://cmake.org/download/) for more information.
+  	
+3. [Install rust](https://www.rust-lang.org/tools/install) (needed for `viam_rust_utils`).
+
+
+## Build and Run
+
+These instructions assume a target system similar to Debian Bullseye.
+First, install the required libraries on your target system:
 
 ```sh
 sudo apt install -qqy libgrpc++1 libboost-log1.74.0
 ```
 
-Then set this JSON config for your robot in the app.viam.com webapp.
+Then follow the C++ instructions to [add a module from the Viam Registry](https://docs.viam.com/registry/configure/#add-a-modular-resource-from-the-viam-registry) and select the `wifi:cpp` model from the `module-example-cpp` module.
 
-Go to 'Config' tab, then change the 'Mode:' selector from 'Builder' to 'Raw JSON', then paste in the following.
 
-```json
+## Configure your Example C++ Module
+
+> [!NOTE]
+> Before configuring your example module, you must [create a robot](https://docs.viam.com/manage/fleet/robots/#add-a-new-robot).
+
+Navigate to the **Config** tab of your robot’s page in [the Viam app](https://app.viam.com/).
+Click on the **Components** subtab and click **Create component**.
+Select **Sensor**, then search for the `wifi:cpp` model. Give your resource a name of your choice, click **Create** and then click **Save config**.
+
+Next, change the **Mode:** selector from **Builder** to **Raw JSON**, and verify that `"components"` array now includes the `viam:wifi:cpp` model and that `"modules"` array includes `viam:module-example-cpp` module. 
+
+Your `Raw JSON` configuration should now include both: 
+
+```json {class="line-numbers linkable-line-numbers"}
 {
-  "components": [{
-	"attributes": {},
-	"model": "viam:wifi:cpp",
-	"depends_on": [],
-	"name": "wifi-cpp",
-	"type": "generic"
-  }],
-  "modules": [{
-	"module_id": "viam:module-example-cpp",
-	"type": "registry",
-	"name": "cpp",
-	"version": "0.0.0-main.15"
-  }]
+  "modules": [
+    {
+      "type": "registry",
+      "name": "viam_module-example-cpp",
+      "module_id": "viam:module-example-cpp",
+      "version": "0.0.3"
+    }
+  ],
+  "components": [
+    {
+      "name": "my-wifi-cpp",
+      "model": "viam:wifi:cpp",
+      "type": "sensor",
+      "namespace": "rdk",
+      "attributes": {},
+      "depends_on": []
+    }
+  ]
 }
 ```
 
-If you make your own build and upload it, you'll need to change `components.0.model` and `modules.0.module_id` to your values. If you don't upload your build to our registry, you can also `scp` it to your robot and run with [executable_path / local exec mode](https://docs.viam.com/extend/modular-resources/configure/#configure-your-module).
+If you upload your version to the Viam registry after building it, remember to update `model` and `module_id` with your values.
+If you aren't using the registry, you can also use `scp` to transfer the build to your robot and run it in 
+[executable_path / local exec mode](https://docs.viam.com/extend/modular-resources/configure/#configure-your-module).
 
-## Contents
+> [!NOTE]  
+> For more information, see [Configure a Robot](https://docs.viam.com/manage/configuration/).
 
-Guided tour of this repo:
 
-- src/: source code for the module
-- CMakeLists.txt: configuration for compiling the binary and getting dependencies
-- Makefile: command to make the module tarball
-- .github/workflows: CI build + deployment logic
-- run.sh, apt-setup.sh: entrypoint and dependency installation for running this on a robot
-- meta.json: Viam module config
+## Module Contents
 
-## Setting up CI
+You can use this repository's files as a reference when building your C++ module:
 
-This repo uses Buildjet runners so we can build natively for ARM. (Look at the `uses` line in [build.yml](.github/workflows/build.yml)). If you fork this repo and you don't have Buildjet connected to Github, your CI jobs won't start.
+| Name  | Content | Location |
+| ------------- | ------------- | ------------- |
+| `CMakeLists.txt` | The configuration for compiling the binary and managing dependencies. | `-` |
+| `Makefile` | The command to create the module tarball dependencies. | `-` |
+| `.github/workflows/` | The CI build and deployment logic for the registry. | `-` |
+| `run.sh` and `apt-setup.sh` | The entrypoint and dependency installation for running the module on a robot. | `-` |
+| `meta.json` | The Viam module configuration. | `-` |
+| `main.cpp`  | The module's entry point file.</br>See [Code a main entry point program](https://docs.viam.com/registry/create/#code-a-main-entry-point-program) for more information. | `src`|
+| `wifi.cpp` | The resource model which implements all the methods that the Viam RDK require.</br>See [Code a new resource model](https://docs.viam.com/registry/create/#code-a-new-resource-model) for more information. | `src` |
+| `wifi.hpp` | The defined implementation of the derivative `WifiSensor` class in `wifi.cpp`.</br>See [Find your reference files](https://docs.viam.com/registry/create/#find-your-reference-files) for more information. | `src` |
 
-Your options are:
-- Target x86 only. Switch to a github runner (`uses: ubuntu-latest`) and remove arm64 from `strategy: matrix` in build.yml
-- Build on an arm emulator using QEMU with the docker/build-push-action, per [instructions here](https://github.com/docker/build-push-action#git-context). This will be slow (~5x slower than native)
-- Set up cross compilation (but this will be a project)
 
-For more instructions about how to deploy your fork, see the [fork instructions](https://github.com/viam-labs/python-example-module#forking-this-repo) in the Python example module.
+## Setting Up CI
+
+This module uses [Buildjet runners](https://buildjet.com/for-github-actions) to build natively for ARM. If you fork this repository and don't have Buildjet connected to GitHub, your CI jobs won't start.
+
+You can choose one option for CI setup:
+- Exlusively targetting x86
+- Building on an ARM emulator using [QEMU](https://www.qemu.org/download/) with [docker/build-push-action](https://github.com/docker/build-push-action)
+- Setting up cross-compilation
+
+Refer to the [fork instructions](https://github.com/viam-labs/python-example-module#forking-this-repo) in the Python example module for more details on deploying your fork. 
+
 
 ## Troubleshooting
+> [!NOTE]
+> Ensure you have `viam-server` installed on the machine you are using as your robot.
 
-### Library paths
 
-`ldd` is your friend. Run `ldd module-example-cpp` in the unpacked tar directory to see which libraries are not resolvable.
+### Library Paths
 
-- Can't find some libviam (libviamsdk.so.noabi, for example)?
-	- Make sure libvimapi + libviamsdk are being bundled in your module.tar.gz
-	- Make sure you have `LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD` (the run.sh wrapper in this repo does that for you)
-- Can't find something else?
-	- You probably need to `apt-get install` it. Check the `apt-get install` command in [Deploy to robot](#deploy-to-robot) above
+Use `ldd` to identify library path issues.
+For example:
 
-### Connecting a debugger
+- If you are unable to find one of the `libviam` packages (for example: `libviamsdk.so.noabi`), ensure `libvimapi` and `libviamsdk` are bundled in your `module.tar.gz`.
+- Confirm that `LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD` (handled by the `run.sh` wrapper) is set.
+- If any other libraries are missing, use `apt-get install` to install them.
 
-For unexplained phenomena, especially crashes or disconnects, a debugger will take you where the logs can't go.
 
-These steps are easier if you use your development machine as the 'robot', i.e. install viam-server on your laptop.
+### Connecting a Debugger
 
-To connect gdb:
+For unexplained issues, you can use a debugger to investigate crashes or disconnects.
+The debugger referenced in this case is [GDB](https://www.onlinegdb.com/).
 
-1. Configure your robot to use the module + make sure it's running
-1. Find the pid of your running module with `ps aux | grep module-example-cpp` (replace the executable name if you've changed it)
-1. `sudo gdb --pid $PID` with the pid you found (sudo because the robot is probably running in sudo)
-1. `continue` in gdb to restart the process
-1. Do the thing that is causing your module to crash. Gdb should catch it
+1. Configure your robot to use the module and ensure it's running.
+2. Find the PID of your running module with `ps aux | grep module-example-cpp`.
+3. Run `sudo gdb --pid $PID` with the obtained PID (use `sudo` as `viam-server` is likely running in sudo).
+4. Type `continue` in `gdb` to restart the process.
+5. Trigger the action causing the issue, and gdb should catch it.
